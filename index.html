@@ -30,16 +30,15 @@
 	<br>
     <button id="train" onclick="train()">Train</button>
     <button onclick="loadCachedModel()">Load weights</button>
-    <button onclick="sampleImage()">Sample image</button>
-	<label for="playbackRate">Playback Rate: </label>
-	<input type="number" id="playbackRate" value=1>
     <br>
     <p id="load-status"><br>Loading resources...this may take a few seconds<br></p>
-    <br>
-	<h3>training images</h3>
+	<h3>training buffer images</h3>
 	<div id="training-image-container"></div>
     <br>
-	<h3>generated images</h3>
+	<label for="playbackRate">Playback Rate: </label>
+	<input type="number" id="playbackRate" value=1>
+	<button onclick="sampleImage()">Generate Buffer</button>
+	<h3>generated buffer images</h3>
     <div id="samples-container"></div>
     <br>
   </section>
