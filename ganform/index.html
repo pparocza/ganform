@@ -21,39 +21,25 @@
 </head>
 <body>
   <section>
-    <h4>Simple MNIST GAN using TensorflowJS</h4>
-    <p>
-    Hand-written digit generation using Generative Adversarial Network. A simple TensorflowJS implementation
-    that clocks in at less than 100 lines of code.
 
-    </p>
-    <table style="margin-left:20px">
-      <tr>
-        <td>Early stages:</td>
-        <td><img src="images/sample-early.png" height="30px"></img></td>
-      </tr>
-      <tr>
-        <td>Getting better:</td>
-        <td><img src="images/sample-mid.png" height="30px"></img></td>
-      </tr>
-      <tr>
-        <td>Later still:</td>
-        <td><img src="images/sample-late.png" height="30px"></img></td>
-      </tr>
-    </table>
+	<label for="epochLength">Epoch Length: </label>
+	<input type="number" id="epochLength" value=275>
 
-    <p>
-    Click <strong>Train</strong> to train for (an additional) 5) epochs. Click <strong>Load weights</strong> to restore 
-    pre-trained weights for the <em>Generator</em>. Click <strong>Sample image</strong> to generate a sample output using the current weights. 
-    The network should start to converge after 15-20 epochs.
-    </p>
+	<label for="numEpochs">Number of Epochs: </label>
+	<input type="number" id="numEpochs" value=5>
+	<br>
     <button id="train" onclick="train()">Train</button>
     <button onclick="loadCachedModel()">Load weights</button>
     <button onclick="sampleImage()">Sample image</button>
+	<label for="playbackRate">Playback Rate: </label>
+	<input type="number" id="playbackRate" value=1>
     <br>
     <p id="load-status"><br>Loading resources...this may take a few seconds<br></p>
     <br>
+	<h3>training images</h3>
+	<div id="training-image-container"></div>
     <br>
+	<h3>generated images</h3>
     <div id="samples-container"></div>
     <br>
   </section>
@@ -81,9 +67,14 @@ async function loadMnist() {
   document.querySelector('#load-status').style.display = 'none';
 }
 
-async function train(num=1375) {
+async function train() {
+
   console.log('starting....');
   document.querySelector('#train').disabled = true;
+
+  epochLength = document.querySelector('#epochLength').value;
+  numEpochs = document.querySelector('#numEpochs').value;
+  num =  epochLength * numEpochs;
 
   for (let i=0; i < num; i++) {
     document.querySelector('#train').innerHTML = i + '/' + num;
@@ -106,7 +97,7 @@ async function sampleImage() {
   await tf.nextFrame();
   const options = {
     width: SIZE,
-    height: SIZE 
+    height: SIZE
   };
 
   const canvas = document.createElement('canvas');
@@ -115,7 +106,7 @@ async function sampleImage() {
   const ctx = canvas.getContext('2d');
   const imageData = new ImageData(options.width, options.height);
   const data = gen(seed(1)).dataSync();
-  
+
   // Undo tanh
   /*
   for (let i=0; i < data.length; i++) {
@@ -129,8 +120,35 @@ async function sampleImage() {
   }
   ctx.putImageData(imageData, 0, 0);
   document.body.querySelector('#samples-container').appendChild(canvas);
+
+  playImage(data);
+
 }
 
+function playImage(bufferArray){
+	const AudioContext = window.AudioContext || window.webKitAudioContext;
+	audioCtx = new AudioContext();
+	audioCtx.latencyHint = 'playback';
+
+	buffer = audioCtx.createBuffer(1, IMAGE_SIZE, audioCtx.sampleRate);
+	bufferSource = audioCtx.createBufferSource();
+	bufferSource.playbackRate.value =   epochLength = document.querySelector('#playbackRate').value;;
+
+	fillBuffer(buffer, bufferArray, 0);
+
+	bufferSource.buffer = buffer;
+
+	bufferSource.connect(audioCtx.destination);
+
+	bufferSource.start();
+}
+
+function fillBuffer(buffer, array, channel){
+	nowBuffering = buffer.getChannelData(channel);
+	for(let i = 0; i < buffer.length; i++){
+		nowBuffering[i] = array[i];
+	}
+}
 
 async function start() {
   await loadMnist();

@@ -1,22 +1,3 @@
-/**
- * @license
- * Copyright 2018 Google LLC. All Rights Reserved.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * =============================================================================
- */
-
-// import * as tf from '@tensorflow/tfjs';
-
 const IMAGE_SIZE = 784;
 const NUM_CLASSES = 10;
 const NUM_DATASET_ELEMENTS = 65000;
@@ -24,12 +5,6 @@ const NUM_DATASET_ELEMENTS = 65000;
 const NUM_TRAIN_ELEMENTS = 55000;
 const NUM_TEST_ELEMENTS = NUM_DATASET_ELEMENTS - NUM_TRAIN_ELEMENTS;
 
-/*
-const MNIST_IMAGES_SPRITE_PATH =
-    'https://storage.googleapis.com/learnjs-data/model-builder/mnist_images.png';
-const MNIST_LABELS_PATH =
-    'https://storage.googleapis.com/learnjs-data/model-builder/mnist_labels_uint8';
-*/
 const MNIST_IMAGES_SPRITE_PATH = './mnist_images.png';
 const MNIST_LABELS_PATH = './mnist_labels_uint8';
 
@@ -72,15 +47,21 @@ class MnistData {
 
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+		  /**
+		   * THIS IS WHERE YOU SUBSTITUTE THE IMAGE FOR AUDIO SIGNAL
+		   */
+
           for (let j = 0; j < imageData.data.length / 4; j++) {
             // All channels hold an equal value since the image is grayscale, so
             // just read the red channel.
-            datasetBytesView[j] = imageData.data[j * 4] / 255;
+            datasetBytesView[j] =  this.synthAlg(j);
           }
 
           console.log('Processed chunk ' + i);
         }
         this.datasetImages = new Float32Array(datasetBytesBuffer);
+
+		this.previewImage();
 
         resolve();
       };
@@ -106,6 +87,65 @@ class MnistData {
         this.datasetLabels.slice(0, NUM_CLASSES * NUM_TRAIN_ELEMENTS);
     this.testLabels =
         this.datasetLabels.slice(NUM_CLASSES * NUM_TRAIN_ELEMENTS);
+  }
+
+  previewImage(){
+	const previewData = [];
+
+	for (let j = 0; j < IMAGE_SIZE; j++) {
+		// All channels hold an equal value since the image is grayscale, so
+		// just read the red channel.
+		previewData[j] =  this.synthAlg(j);
+	  }
+
+	  const options = {
+		width: SIZE,
+		height: SIZE
+	  };
+
+	  const canvas2 = document.createElement('canvas');
+	  canvas2.width = options.width;
+	  canvas2.height = options.height;
+	  const ctx = canvas2.getContext('2d');
+	  const imageData = new ImageData(options.width, options.height);
+	  const data = previewData;
+
+	  const unflat = ImageUtil.unflatten(data, options);
+	  for (let i=0; i < unflat.length; i++) {
+		imageData.data[i] = unflat[i];
+	  }
+	  ctx.putImageData(imageData, 0, 0);
+	  document.body.querySelector('#training-image-container').appendChild(canvas2);
+
+	  this.playImage(previewData);
+
+  }
+
+playImage(bufferArray){
+	const AudioContext = window.AudioContext || window.webKitAudioContext;
+	var audioCtx = new AudioContext();
+	audioCtx.latencyHint = 'playback';
+
+	var buffer = audioCtx.createBuffer(1, IMAGE_SIZE, audioCtx.sampleRate);
+	var bufferSource = audioCtx.createBufferSource();
+	bufferSource.playbackRate.value = 1;
+
+	fillBuffer(buffer, bufferArray, 0);
+
+	bufferSource.buffer = buffer;
+
+	bufferSource.connect(audioCtx.destination);
+
+	bufferSource.start();
+}
+
+  synthAlg(index){
+	var indexZeroOne = (index % IMAGE_SIZE) / IMAGE_SIZE
+	var cosValue = Math.cos( (2 * Math.PI) * indexZeroOne );
+	var amplitudeValue = 1 - indexZeroOne;
+	var sampleValue = cosValue * amplitudeValue;
+
+	return cosValue;
   }
 
   nextTrainBatch(batchSize) {
